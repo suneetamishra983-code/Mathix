@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "language": { "type": "string", "enum": ["en", "hi"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Progress": {
+      "title": "User Progress",
+      "description": "Tracks user learning progress",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "totalQuestions": { "type": "integer" },
+        "correctAnswers": { "type": "integer" },
+        "level": { "type": "integer" },
+        "accuracy": { "type": "number" },
+        "weakTopics": { "type": "array", "items": { "type": "string" } },
+        "topicPerformance": { "type": "object" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "Stores results of weekly tests",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "score": { "type": "integer" },
+        "total": { "type": "integer" },
+        "accuracy": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "feedback": { "type": "string" }
+      },
+      "required": ["userId", "score", "total"]
+    },
+    "Leaderboard": {
+      "title": "Leaderboard Entry",
+      "description": "Aggregated stats for leaderboard",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "score": { "type": "integer" },
+        "rank": { "type": "integer" }
+      },
+      "required": ["userId", "score"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Stores AI tutor chat messages",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "attachment": { "type": "object" }
+      },
+      "required": ["userId", "role", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/progress/{userId}": { "schema": "Progress", "description": "User progress tracking" },
+    "/test_results/{testId}": { "schema": "TestResult", "description": "Weekly test results" },
+    "/leaderboard/{userId}": { "schema": "Leaderboard", "description": "Leaderboard data" },
+    "/chat_history/{userId}/messages/{messageId}": { "schema": "ChatMessage", "description": "AI Tutor chat history" }
+  }
+}

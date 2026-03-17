@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, displayName, email, photoURL, theme, language, createdAt
+    //
+    // Collection: progress
+    // Fields: userId, totalQuestions, correctAnswers, level, accuracy, weakTopics, topicPerformance, lastUpdated
+    //
+    // Collection: test_results
+    // Fields: userId, score, total, accuracy, date, feedback
+    //
+    // Collection: leaderboard
+    // Fields: userId, displayName, photoURL, score, rank
+    //
+    // Collection: chat_history
+    // Fields: userId, role, text, timestamp, attachment
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == "localghostx69@gmail.com" && request.auth.token.email_verified == true
+      );
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email);
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasAll(['userId']) &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidTestResult(data) {
+      return data.keys().hasAll(['userId', 'score', 'total']) &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['userId', 'role', 'text', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.role in ['user', 'model'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /progress/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidProgress(request.resource.data);
+      allow update: if isOwner(userId) && isValidProgress(request.resource.data);
+    }
+
+    match /test_results/{testId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidTestResult(request.resource.data);
+      allow update: if false; // Test results should be immutable
+    }
+
+    match /leaderboard/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin(); // Leaderboard updated by admin/system
+    }
+
+    match /chat_history/{userId}/messages/{messageId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidChatMessage(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+  }
+}
